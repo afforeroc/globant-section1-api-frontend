@@ -6,7 +6,7 @@ streamlit
 pandas
 ```
 
-## Instructions to configure the API in local way
+## Instructions to configure the frontend in local way
 
 ## Install Python and update PIP
 > PowerShell
@@ -27,5 +27,5 @@ pandas
 > PowerShell
 * Access the repository folder: `cd .\globant-section1-api-frontend\`
 * Activate the virtual environment: `.\venv\Scripts\activate`
-* Run the Streamlit App: `python .\frontend.py`
+* Run the Streamlit App: `streamlit run .\frontend.py`
 * Deactivate the virtual environment: `deactivate`
