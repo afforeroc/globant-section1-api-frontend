@@ -4,6 +4,7 @@
 ```
 streamlit
 pandas
+simplejson
 ```
 
 ## Instructions to configure the frontend in local way

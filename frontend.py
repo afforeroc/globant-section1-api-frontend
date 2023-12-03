@@ -1,7 +1,23 @@
-import streamlit as st
+# -*- coding: utf-8 -*-
+
+"""
+Frontend Streamlit to receive CSV files and then upload them to Snowflake
+
+The Streamlit frontend functions as a web page designed to receive CSV files containing data.
+It performs various validation checks, including verifying filenames, ensuring the correct
+number of columns, and validating data types for each column. Upon successful validation,
+the data undergoes transformation into a pandas DataFrame and is subsequently converted
+into JSON format. This JSON data is then sent via an API request to be inserted into
+the Snowflake storage service.
+"""
+
+import json
+import numpy as np
 import pandas as pd
 import requests
-import json
+import simplejson
+import streamlit as st
+
 
 # Valid CSV filenames
 valid_filenames = ["hired_employees.csv", "departments.csv", "jobs.csv"]
@@ -66,11 +82,40 @@ def transform_df_dtypes(filename, df):
                     break
                 if not correct_dtype:
                     df[column] = df[column].astype(dtype_list[column][0])
-        message = f"The data types of CSV are correct."
+        message = "The data types of CSV are correct."
         return True, df, message
     except Exception as exception:
         error_message = f"The data types of file '{filename}' were not expected. Details: {exception}"
         return False, None, error_message
+
+
+def prepare_elem_df_for_api(table_name, df):
+    """
+    Prepare a pandas DataFrame for API insertion by converting it to JSON format and handling NaN values.
+
+    Parameters:
+    - table_name: Name of the table corresponding to the DataFrame.
+    - df: pandas DataFrame to be prepared for API insertion.
+
+    Returns:
+    - JSON data formatted for API insertion.
+    """
+    # Convert the DataFrame to JSON
+    json_data = df.to_dict(orient="list")
+
+    # Replace NaN for null
+    json_data = json.loads(simplejson.dumps(json_data, ignore_nan=True))
+
+    # Prepare JSON data for API
+    json_data_for_api = {
+        "table": {
+            table_name: json_data
+        }
+    }
+    # json_data_for_api["table"] = {}
+    # json_data_for_api["table"][table_name] = json_data
+    return json_data_for_api
+
 
 if __name__ == "__main__":
     # Page setup
@@ -115,20 +160,27 @@ if __name__ == "__main__":
                         st.write("DataFrame head:")
                         st.write(df)
 
-                        # Convert the DataFrame to JSON
-                        json_data = df.to_dict(orient="list")
+                        # Split the DataFrame in sub DataFrames on 1000 records
+                        max_records = 1000
+                        splitted_df_list = np.array_split(df, range(max_records, len(df), max_records))
 
-                        # Write JSON data to the file
-                        json_filename = uploaded_file.name.replace(".csv", ".json")
-                        with open(json_filename, 'w') as json_file:
-                            json.dump(json_data, json_file, indent=4)
+                        # Table name
+                        table_name = uploaded_file.name.replace(".csv", "")
 
-                        # Display the generated JSON
-                        # st.write("Generated JSON:")
-                        # print(json_data)
-                        # st.code(json_data, language="json")
+                        json_data_for_api_list = []
+                        for elem_df in splitted_df_list:
+                            json_data_for_api = prepare_elem_df_for_api(table_name, elem_df)
+                            json_data_for_api_list.append(json_data_for_api)
 
-                        # Button to send the JSON to an API (you must implement your own API!)
+                        # TEST: Save JSON data for API
+                        """
+                        for idx, json_data_for_api in enumerate(json_data_for_api_list):
+                            json_filename = f"{table_name}_{idx + 1}.json"
+                            with open(json_filename, 'w') as json_file:
+                                json.dump(json_data_for_api, json_file, indent=None)
+                        """
+
+                        # Button to send the JSON to an API
                         if st.button("Insert into Snowflake"):
                             # API URL (replace with your own URL)
                             api_url = "https://your-api.com/endpoint"
