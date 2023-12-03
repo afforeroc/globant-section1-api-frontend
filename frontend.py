@@ -149,12 +149,12 @@ if __name__ == "__main__":
                     if not valid_transformation:
                         st.error(transform_message)
                     else:
-                        st.success(transform_message)
+                        # st.success(transform_message)
 
                         # Rename columns
                         column_names_by_filename = column_names[uploaded_file.name]
                         df = df.rename(columns=column_names_by_filename)
-                        st.success("The columns of DataFrame were renamed.")
+                        # st.success("The columns of DataFrame were renamed.")
 
                         # Display the DataFrame
                         st.write("DataFrame head:")
@@ -173,27 +173,32 @@ if __name__ == "__main__":
                             json_data_for_api_list.append(json_data_for_api)
 
                         # TEST: Save JSON data for API
-                        """
                         for idx, json_data_for_api in enumerate(json_data_for_api_list):
                             json_filename = f"{table_name}_{idx + 1}.json"
                             with open(json_filename, 'w') as json_file:
                                 json.dump(json_data_for_api, json_file, indent=None)
-                        """
+
 
                         # Button to send the JSON to an API
                         if st.button("Insert into Snowflake"):
                             # API URL (replace with your own URL)
-                            api_url = "https://your-api.com/endpoint"
+                            api_url = "http://127.0.0.1:5000/api/receive_table_data"
 
                             # Simulate a POST request to the API
                             headers = {'Content-Type': 'application/json'}
-                            response = requests.post(api_url, data=json_data, headers=headers)
+
+                            # response_list = []
+                            for json_data in json_data_for_api_list:
+                                # print(json_data)
+                                response = requests.post(api_url, json=json_data, timeout=10)
+                                st.write(response.status_code)
 
                             # Check the result of the request
-                            if response.status_code == 200:
-                                st.success("Data sent successfully to the API.")
-                            else:
-                                st.error(f"Error sending data to the API. Status code: {response.status_code}")
+                            # if response.status_code == 200:
+                            #    st.success("Data sent successfully to the API.")
+                            # else:
+                            #    st.error(f"Error sending data to the API. Status code: {response.status_code}")
+
 
             except pd.errors.EmptyDataError:
                 st.error("Empty CSV file. Please upload a file with data.")
