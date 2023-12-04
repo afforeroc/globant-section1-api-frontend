@@ -182,8 +182,7 @@ if __name__ == "__main__":
                         # Button to send the JSON to an API
                         if st.button("Insert into Snowflake"):
                             # API URL (replace with your own URL)
-                            api_url = "https://l9k2s37rid.execute-api.us-east-1.amazonaws.com/globant-challenge/receive-table-data"
-
+                            api_url = st.secrets["api_url"]
                             # Simulate a POST request to the API
                             headers = {'Content-Type': 'application/json'}
 
