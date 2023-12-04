@@ -173,32 +173,31 @@ if __name__ == "__main__":
                             json_data_for_api_list.append(json_data_for_api)
 
                         # TEST: Save JSON data for API
-                        for idx, json_data_for_api in enumerate(json_data_for_api_list):
-                            json_filename = f"{table_name}_{idx + 1}.json"
-                            with open(json_filename, 'w') as json_file:
-                                json.dump(json_data_for_api, json_file, indent=None)
+                        # for idx, json_data_for_api in enumerate(json_data_for_api_list):
+                        #     json_filename = f"{table_name}_{idx + 1}.json"
+                        #     with open(json_filename, 'w') as json_file:
+                        #         json.dump(json_data_for_api, json_file, indent=None)
 
 
                         # Button to send the JSON to an API
                         if st.button("Insert into Snowflake"):
                             # API URL (replace with your own URL)
-                            api_url = "http://127.0.0.1:5000/api/receive_table_data"
+                            api_url = "https://l9k2s37rid.execute-api.us-east-1.amazonaws.com/globant-challenge/receive-table-data"
 
                             # Simulate a POST request to the API
                             headers = {'Content-Type': 'application/json'}
 
-                            # response_list = []
+                            all_inserted = True
+                            final_message = ""
                             for json_data in json_data_for_api_list:
-                                # print(json_data)
-                                response = requests.post(api_url, json=json_data, timeout=10)
-                                st.write(response.status_code)
-
-                            # Check the result of the request
-                            # if response.status_code == 200:
-                            #    st.success("Data sent successfully to the API.")
-                            # else:
-                            #    st.error(f"Error sending data to the API. Status code: {response.status_code}")
-
+                                response = requests.post(api_url, headers=headers, json=json_data)
+                                response_text = json.loads(response.text)
+                                final_message = response_text["message"]
+                                if response_text["status"] == "error":
+                                    all_inserted = False
+                                    break
+                            if all_inserted:
+                                st.success(final_message)
 
             except pd.errors.EmptyDataError:
                 st.error("Empty CSV file. Please upload a file with data.")
