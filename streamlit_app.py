@@ -117,6 +117,17 @@ def prepare_elem_df_for_api(table_name, df):
     return json_data_for_api
 
 
+def is_valid_datetime_column(df, column_name):
+    if df.shape[1] == 5:
+        try:
+            _ = pd.to_datetime(df[column_name])
+            return True, ""
+        except (ValueError, pd.errors.ParserError) as _:
+            error_message = f"The third column has invalid datetime values."
+            return False, error_message
+    return True, ""
+
+
 if __name__ == "__main__":
     # Page setup
     st.title("Upload CSV and Insert into Snowflake")
@@ -149,57 +160,58 @@ if __name__ == "__main__":
                     if not valid_transformation:
                         st.error(transform_message)
                     else:
-                        # st.success(transform_message)
+                        # Valid datetime column
+                        valid_datetime_colum, valid_datetime_message = is_valid_datetime_column(df, 2)
+                        if not valid_datetime_colum:
+                            st.error(valid_datetime_message)
+                        else:
+                            # Rename columns
+                            column_names_by_filename = column_names[uploaded_file.name]
+                            df = df.rename(columns=column_names_by_filename)
 
-                        # Rename columns
-                        column_names_by_filename = column_names[uploaded_file.name]
-                        df = df.rename(columns=column_names_by_filename)
-                        # st.success("The columns of DataFrame were renamed.")
+                            # Display the DataFrame
+                            st.write("DataFrame head:")
+                            st.write(df)
 
-                        # Display the DataFrame
-                        st.write("DataFrame head:")
-                        st.write(df)
+                            # Split the DataFrame in sub DataFrames on 1000 records
+                            max_records = 1000
+                            splitted_df_list = np.array_split(df, range(max_records, len(df), max_records))
 
-                        # Split the DataFrame in sub DataFrames on 1000 records
-                        max_records = 1000
-                        splitted_df_list = np.array_split(df, range(max_records, len(df), max_records))
+                            # Table name
+                            table_name = uploaded_file.name.replace(".csv", "")
 
-                        # Table name
-                        table_name = uploaded_file.name.replace(".csv", "")
+                            json_data_for_api_list = []
+                            for elem_df in splitted_df_list:
+                                json_data_for_api = prepare_elem_df_for_api(table_name, elem_df)
+                                json_data_for_api_list.append(json_data_for_api)
 
-                        json_data_for_api_list = []
-                        for elem_df in splitted_df_list:
-                            json_data_for_api = prepare_elem_df_for_api(table_name, elem_df)
-                            json_data_for_api_list.append(json_data_for_api)
+                            # TEST: Save JSON data for API
+                            # for idx, json_data_for_api in enumerate(json_data_for_api_list):
+                            #     json_filename = f"{table_name}_{idx + 1}.json"
+                            #     with open(json_filename, 'w') as json_file:
+                            #         json.dump(json_data_for_api, json_file, indent=None)
 
-                        # TEST: Save JSON data for API
-                        # for idx, json_data_for_api in enumerate(json_data_for_api_list):
-                        #     json_filename = f"{table_name}_{idx + 1}.json"
-                        #     with open(json_filename, 'w') as json_file:
-                        #         json.dump(json_data_for_api, json_file, indent=None)
-
-
-                        # Button to send the JSON to an API
-                        if st.button("Insert into Snowflake"):
-                            # API URL (replace with your own URL)
-                            api_url = st.secrets["api_url"]
-                            # Simulate a POST request to the API
-                            headers = {'Content-Type': 'application/json'}
-                            # Send all data using the API
-                            all_inserted = True
-                            final_message = ""
-                            with st.spinner('Wait for it...'):
-                                for json_data in json_data_for_api_list:
-                                    response = requests.post(api_url, headers=headers, json=json_data)
-                                    response_text = json.loads(response.text)
-                                    final_message = response_text["message"]
-                                    if response_text["status"] == "error":
-                                        all_inserted = False
-                                        break
-                            # Final message
-                            if all_inserted:
-                                st.success(final_message)
-                            else:
-                                st.error(final_message)
+                            # Button to send the JSON to an API
+                            if st.button("Insert into Snowflake"):
+                                # API URL (replace with your own URL)
+                                api_url = "https://l9k2s37rid.execute-api.us-east-1.amazonaws.com/globant-challenge/receive-table-data"
+                                # Simulate a POST request to the API
+                                headers = {'Content-Type': 'application/json'}
+                                # Send all data using the API
+                                all_inserted = True
+                                final_message = ""
+                                with st.spinner('Wait for it...'):
+                                    for json_data in json_data_for_api_list:
+                                        response = requests.post(api_url, headers=headers, json=json_data)
+                                        response_text = json.loads(response.text)
+                                        final_message = response_text["message"]
+                                        if response_text["status"] == "error":
+                                            all_inserted = False
+                                            break
+                                # Final message
+                                if all_inserted:
+                                    st.success(final_message)
+                                else:
+                                    st.error(final_message)
             except pd.errors.EmptyDataError:
                 st.error("Empty CSV file. Please upload a file with data.")
