@@ -185,18 +185,21 @@ if __name__ == "__main__":
                             api_url = st.secrets["api_url"]
                             # Simulate a POST request to the API
                             headers = {'Content-Type': 'application/json'}
-
+                            # Send all data using the API
                             all_inserted = True
                             final_message = ""
-                            for json_data in json_data_for_api_list:
-                                response = requests.post(api_url, headers=headers, json=json_data)
-                                response_text = json.loads(response.text)
-                                final_message = response_text["message"]
-                                if response_text["status"] == "error":
-                                    all_inserted = False
-                                    break
+                            with st.spinner('Wait for it...'):
+                                for json_data in json_data_for_api_list:
+                                    response = requests.post(api_url, headers=headers, json=json_data)
+                                    response_text = json.loads(response.text)
+                                    final_message = response_text["message"]
+                                    if response_text["status"] == "error":
+                                        all_inserted = False
+                                        break
+                            # Final message
                             if all_inserted:
                                 st.success(final_message)
-
+                            else:
+                                st.error(final_message)
             except pd.errors.EmptyDataError:
                 st.error("Empty CSV file. Please upload a file with data.")

@@ -28,5 +28,5 @@ simplejson
 > PowerShell
 * Access the repository folder: `cd .\globant-section1-api-frontend\`
 * Activate the virtual environment: `.\venv\Scripts\activate`
-* Run the Streamlit App: `streamlit run .\frontend.py`
+* Run the Streamlit App: `streamlit run .\streamlit_app.py`
 * Deactivate the virtual environment: `deactivate`
